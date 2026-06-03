@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Żopka Simulator - 32x32 Ultra Pixel Art Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            background-color: #050a07;
+            background-image: 
+                radial-gradient(circle at 50% 10%, #0d2b17 0%, transparent 80%),
+                repeating-linear-gradient(0deg, rgba(0, 255, 64, 0.02) 0px, rgba(0, 255, 64, 0.02) 1px, transparent 1px, transparent 4px);
+            color: #e0e0e0;
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-size: 10px;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        /* EFEKT EKRANU CRT */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .game-container {
+            width: 1200px;
+            height: 720px;
+            background-color: #121a15;
+            border: 6px solid #00ff44;
+            border-radius: 8px;
+            display: grid;
+            grid-template-rows: 55px 1fr;
+            grid-template-columns: 320px 1fr 320px;
+            padding: 15px;
+            box-sizing: border-box;
+            gap: 15px;
+            box-shadow: 0 0 60px rgba(0, 255, 64, 0.2), inset 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        /* Górny pasek */
+        .top-bar {
+            grid-column: span 3;
+            background-color: #070d09;
+            border: 3px solid #00cc33;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: #00ff44;
+            font-size: 12px;
+            box-shadow: inset 0 0 15px rgba(0, 255, 64, 0.15), 4px 4px 0px rgba(0,0,0,0.5);
+            text-shadow: 0 0 5px rgba(0, 255, 64, 0.5);
+        }
+
+        .player-money { color: #ffeb3b; text-shadow: 0 0 5px rgba(255, 235, 59, 0.5); }
+        .time-display { color: #00e5ff; text-shadow: 0 0 5px rgba(0, 229, 255, 0.5); }
+        .level-display { color: #ff4081; text-shadow: 0 0 5px rgba(255, 64, 129, 0.5); }
+
+        /* LEWY PANEL: Klient */
+        .customer-panel {
+            background-color: #0a0f0c;
+            border: 3px solid #1a3322;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 4px 4px 0px rgba(0,0,0,0.3);
+        }
+
+        .customer-panel::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 40%;
+            background: linear-gradient(180deg, #16261c 0%, transparent 100%); z-index: 1;
+        }
+
+        .customer-title { 
+            color: #ff9800; text-align: center; font-size: 10px; z-index: 2; 
+            background: #000; padding: 5px 10px; border: 2px solid #ff9800;
+        }
+
+        .avatar-container {
+            width: 140px; height: 140px; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease-in;
+            z-index: 2; display: flex; justify-content: center; align-items: center;
+            background: #111; border: 4px solid #333; box-shadow: 6px 6px 0px rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+
+        .avatar-container.hidden-left { transform: translateX(-200%) rotate(-10deg); opacity: 0; }
+        .avatar-container.hidden-right { transform: translateX(200%) rotate(10deg); opacity: 0; }
+
+        .pixel-avatar {
+            width: 90%; height: 90%; 
+            image-rendering: pixelated; animation: bobbing 2s infinite ease-in-out;
+            filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.6));
+        }
+
+        @keyframes bobbing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .bubble {
+            background-color: #fff; color: #000; padding: 15px; border-radius: 8px;
+            position: relative; width: 100%; box-sizing: border-box; line-height: 1.8;
+            font-size: 9px; border: 4px solid #000; min-height: 120px; z-index: 2;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+        }
+
+        .bubble::after {
+            content: ''; position: absolute; bottom: 100%; left: 50%; margin-left: -12px;
+            border-width: 12px; border-style: solid; border-color: transparent transparent #000 transparent;
+        }
+        .bubble::before {
+            content: ''; position: absolute; bottom: 100%; left: 50%; margin-left: -8px;
+            border-width: 8px; border-style: solid; border-color: transparent transparent #fff transparent;
+            z-index: 1;
+        }
+
+        .order-item { color: #d32f2f; display: block; font-weight: bold; margin-top: 4px; border-bottom: 1px dashed #ccc;}
+        .thank-you-text { color: #1b5e20; font-weight: bold; font-size: 10px; }
+
+        /* ŚRODKOWY PANEL: Zakładki */
+        .middle-panel { display: flex; flex-direction: column; gap: 10px; }
+        .tabs { display: flex; gap: 10px; }
+
+        .tab-btn {
+            flex: 1; background-color: #1a231e; color: #888; border: 3px solid #2a3b30;
+            padding: 12px; cursor: pointer; font-family: inherit; font-size: 10px; transition: 0.1s;
+            box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+        }
+
+        .tab-btn.active { background-color: #0d4a22; color: #00ff44; border-color: #00ff44; box-shadow: inset 0 0 10px rgba(0,255,64,0.3), 3px 3px 0px rgba(0,0,0,0.5); text-shadow: 0 0 4px #00ff44;}
+        .tab-btn:hover:not(.active) { background-color: #233128; color: #ccc; transform: translateY(-2px); }
+        .tab-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+
+        .view-content {
+            background-color: #18241d; border: 4px solid #0a0f0c; padding: 12px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 12px; overflow-y: auto; height: 520px; box-sizing: border-box;
+            box-shadow: inset 4px 4px 10px rgba(0,0,0,0.6);
+        }
+        
+        .view-content::-webkit-scrollbar { width: 10px; }
+        .view-content::-webkit-scrollbar-track { background: #0a0f0c; border-left: 2px solid #2a3b30; }
+        .view-content::-webkit-scrollbar-thumb { background: #00ff44; border: 2px solid #0a0f0c; }
+
+        /* Półka Sklepowa */
+        .product {
+            background-color: #24362b; border: 3px solid #3a5444; box-shadow: 4px 4px 0px #000;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: 10px 5px; cursor: pointer; text-align: center; height: 140px; box-sizing: border-box; position: relative;
+            transition: 0.1s;
+        }
+
+        .product:hover { background-color: #2f4738; border-color: #00ff44; transform: translateY(-3px); box-shadow: 4px 7px 0px #000, 0 0 10px rgba(0,255,64,0.2); }
+        .product:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px #000; }
+
+        .product svg { 
+            width: 60px; height: 60px; 
+            image-rendering: pixelated; 
+            margin-top: 2px; 
+            filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.6));
+        }
+        
+        .product-name { color: #fff; font-size: 7.5px; margin: 6px 0 4px 0; font-weight: bold; line-height: 1.3; text-shadow: 2px 2px 0 #000; }
+        .product-price { color: #ffeb3b; font-size: 8.5px; text-shadow: 2px 2px 0 #000; }
+        
+        .card-badge {
+            background-color: #ff9800; color: #000; font-size: 6px; padding: 4px; border-radius: 0px; width: 90%; font-weight: bold; border: 2px solid #000;
+        }
+
+        /* Styl Ulepszeń */
+        .wholesale-item {
+            background-color: #1e2836; border: 3px solid #2d3b4f; padding: 10px; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between; height: 150px; box-shadow: 4px 4px 0px #000;
+            text-align: center; box-sizing: border-box; transition: 0.1s;
+        }
+        .wholesale-item:hover:not(.locked) { transform: translateY(-2px); box-shadow: 4px 6px 0px #000; }
+        .wholesale-item.locked { background-color: #0f141a; border-color: #222; opacity: 0.8; filter: grayscale(100%); }
+        .btn-buy-stock { background-color: #00c853; color: white; border: 2px solid #000; padding: 8px; font-size: 8px; cursor: pointer; width: 100%; margin-top: 6px; box-shadow: 2px 2px 0px #000;}
+        .btn-buy-stock:active:not(:disabled) { transform: translate(2px,2px); box-shadow: none; }
+        .btn-buy-stock:hover:not(:disabled) { background-color: #00e676; }
+
+        /* PRAWY PANEL: Kasa */
+        .register-panel { display: flex; flex-direction: column; gap: 12px; }
+
+        .screen {
+            background-color: #001e4d; 
+            border: 4px solid #000; 
+            height: 160px; 
+            padding: 12px;
+            overflow-y: auto; 
+            color: #4df; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 0 4px #444;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .scanned-list { flex-grow: 1; font-size: 8px; line-height: 1.5; }
+        .scanned-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(68, 221, 255, 0.2); padding-bottom: 2px;}
+        .total { 
+            border-top: 2px dashed #4df; 
+            padding-top: 8px; 
+            text-align: right; 
+            font-size: 11px; 
+            color: #fff;
+            margin-top: 5px;
+        }
+
+        .controls { display: flex; flex-direction: column; gap: 8px; }
+        button { font-family: inherit; color: white; padding: 12px; cursor: pointer; font-size: 10px; border: 3px solid #000; box-shadow: 4px 4px 0px #000; transition: 0.1s; text-shadow: 1px 1px 0 #000;}
+        button:active:not(:disabled) { transform: translate(4px, 4px); box-shadow: 0px 0px 0px #000; }
+        
+        .btn-kasuj { background-color: #008f11; color: #fff; border-color: #00ff00; }
+        .btn-kasuj:hover:not(:disabled) { background-color: #00b315; }
+        .btn-kasuj:disabled { background-color: #003306; border-color: #00550a; color: #555; }
+        
+        .btn-app { background-color: #ff9800; color: #000; font-weight: bold; border-color: #ffc107; text-shadow: none;}
+        .btn-app:hover:not(:disabled) { background-color: #ffb300; }
+        .btn-app:disabled { background-color: #4a3100; color: #777; border-color: #664400; }
+        
+        .btn-cancel { background-color: #b71c1c; border-color: #ff5252;}
+        .btn-cancel:hover { background-color: #d32f2f; }
+        
+        .btn-end { background-color: #0277bd; border-color: #29b6f6;}
+        .btn-end:hover { background-color: #0288d1; }
+
+        .corner-report { background-color: #0a0f0c; border: 3px solid #ffc107; padding: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 4px 4px 0px rgba(0,0,0,0.3);}
+        .corner-report h3 { color: #ffc107; margin: 0 0 10px 0; font-size: 9px; text-align: center; padding-bottom: 5px; border-bottom: 2px dashed #ffc107;}
+        .report-stat { font-size: 8px; line-height: 1.8; color: #888; }
+        .report-stat span { color: #fff; text-shadow: 1px 1px 0 #000; }
+
+        .event-banner { grid-column: span 3; background-color: #332200; border: 3px solid #ff9800; color: #fff; padding: 10px; text-align: center; font-size: 9px; margin-bottom: -5px; box-shadow: 4px 4px 0px rgba(0,0,0,0.5); text-shadow: 1px 1px 0 #000;}
+
+        /* MODALE */
+        .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(4px); }
+        .modal-content { background: #111; border: 6px solid #ff9800; padding: 25px; text-align: center; width: 360px; box-shadow: 12px 12px 0px #000; }
+        .modal-content h3 { color: #00ff44; font-size: 13px; margin-top: 0; text-shadow: 2px 2px 0 #000;}
+        .modal-content h4 { color: #fff; font-size: 10px; margin-bottom: 20px; text-decoration: underline;}
+        .grid-amounts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .btn-amount { background: #1a3322; border: 3px solid #00ff44; padding: 15px 0; color: #fff; cursor: pointer; font-size: 11px; }
+        .btn-amount:hover { background: #244730; transform: translateY(-2px); box-shadow: 0 4px 0 #000;}
+        .btn-amount:active { transform: translateY(2px); box-shadow: none;}
+        .input-amount { width: 85%; padding: 12px; font-family: inherit; font-size: 14px; text-align: center; background: #000; color: #00ff44; border: 3px solid #00ff44; margin-bottom: 15px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="top-bar">
+            <span id="day-display">DZIEŃ: 2</span>
+            <span class="time-display" id="time-display">GODZINA: 23:00</span>
+            <span class="level-display" id="level-display">LVL: 3 (XP: 75/225)</span>
+            <span class="player-money">KASA: <span id="player-balance">2309.50</span> ZŁ</span>
+        </div>
+
+        <div class="event-banner" id="event-banner">💥 AWANS! Osiągnięto 3 poziom! Sprawdź ulepszenia! 💥</div>
+
+        <div class="customer-panel" id="customer-panel">
+            <div class="customer-title" id="customer-type-title">KLIENT: DZIECKO</div>
+            <div class="avatar-container hidden-left" id="avatar-container"><svg class="pixel-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="4" y="2" width="8" height="3" fill="#d32f2f"></rect><rect x="4" y="4" width="10" height="1" fill="#d32f2f"></rect><rect x="5" y="5" width="6" height="5" fill="#ffccbc"></rect><rect x="6" y="6" width="1" height="1" fill="#000"></rect><rect x="9" y="6" width="1" height="1" fill="#000"></rect><rect x="7" y="8" width="2" height="1" fill="#d84315"></rect><rect x="5" y="10" width="6" height="6" fill="#43a047"></rect><rect x="7" y="11" width="2" height="5" fill="#1b5e20"></rect></svg></div>
+            <div class="bubble"><div id="order-speech"><strong>KONIEC DNIA:</strong><br>Klienci: 13<br>Czysty Zysk: +2309.50 zł<br><br>Rozpocznij kolejny dzień!</div></div>
+        </div>
+
+        <div class="middle-panel">
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-shop" onclick="switchTab('shop')">ASORTYMENT</button>
+                <button class="tab-btn " id="tab-prices" onclick="switchTab('prices')">CENNIK</button>
+                <button class="tab-btn " id="tab-warehouse" onclick="switchTab('warehouse')">ULEPSZENIA</button>
+            </div>
+            <div class="view-content" id="view-content"><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="13" width="26" height="8" fill="#000"></rect><rect x="4" y="14" width="24" height="6" fill="#e6a863"></rect><rect x="4" y="20" width="24" height="2" fill="#c47a31"></rect><rect x="5" y="11" width="22" height="6" fill="#000"></rect><rect x="6" y="12" width="20" height="4" fill="#c4331a"></rect><rect x="6" y="16" width="20" height="2" fill="#a1230e"></rect><path d="M8 13 Q10 11, 12 15 T16 15 T20 15 T24 15" fill="none" stroke="#ffcc00" stroke-width="2"></path></svg>
+                        <span class="product-name">Hot Dog</span>
+                        <span class="product-price">8.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="1" y="12" width="30" height="10" fill="#000"></rect><rect x="2" y="13" width="28" height="6" fill="#d9a05b"></rect><rect x="2" y="19" width="28" height="2" fill="#b07a3e"></rect><rect x="4" y="11" width="24" height="4" fill="#ffde59"></rect><rect x="6" y="12" width="4" height="2" fill="#e60000"></rect><rect x="14" y="11" width="3" height="2" fill="#e60000"></rect><rect x="22" y="12" width="4" height="2" fill="#e60000"></rect><rect x="8" y="11" width="2" height="2" fill="#4d4d4d"></rect><rect x="18" y="12" width="2" height="2" fill="#4d4d4d"></rect></svg>
+                        <span class="product-name">Zapiekanka Klasyk</span>
+                        <span class="product-price">8.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="1" y="12" width="30" height="10" fill="#000"></rect><rect x="2" y="13" width="28" height="6" fill="#d9a05b"></rect><rect x="2" y="19" width="28" height="2" fill="#b07a3e"></rect><rect x="4" y="11" width="24" height="4" fill="#ffde59"></rect><rect x="5" y="12" width="3" height="2" fill="#ff8080"></rect><rect x="12" y="11" width="4" height="2" fill="#ff8080"></rect><rect x="20" y="12" width="3" height="2" fill="#ff8080"></rect><rect x="9" y="12" width="2" height="2" fill="#e60000"></rect><rect x="17" y="11" width="2" height="2" fill="#e60000"></rect></svg>
+                        <span class="product-name">Zapiekanka z Szynką</span>
+                        <span class="product-price">9.90 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"></rect><rect x="4" y="8" width="24" height="14" fill="#e0b674"></rect><rect x="4" y="22" width="24" height="2" fill="#bc8d48"></rect><rect x="8" y="8" width="2" height="14" fill="#5c3817"></rect><rect x="15" y="8" width="2" height="14" fill="#5c3817"></rect><rect x="22" y="8" width="2" height="14" fill="#5c3817"></rect><rect x="4" y="14" width="2" height="3" fill="#ffeb3b"></rect><rect x="26" y="13" width="2" height="3" fill="#ffea2e"></rect></svg>
+                        <span class="product-name">Panini</span>
+                        <span class="product-price">9.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M5 26 L14 4 L26 12 L16 29 Z" fill="#000"></path><path d="M6 25 L14 6 L24 12 L16 27 Z" fill="#eed9b3"></path><path d="M12 6 L20 10 L16 16 L10 12 Z" fill="#66bb6a"></path><rect x="13" y="9" width="3" height="3" fill="#ffb74d"></rect><rect x="15" y="12" width="2" height="2" fill="#ff5252"></rect></svg>
+                        <span class="product-name">Wrap z Kurczakiem</span>
+                        <span class="product-price">10.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="5" width="14" height="24" fill="#000"></rect><rect x="10" y="10" width="12" height="18" fill="#e0e0e0"></rect><rect x="10" y="6" width="12" height="4" fill="#424242"></rect><rect x="12" y="14" width="8" height="6" fill="#4e342e"></rect><path d="M14 4 Q15 2, 14 0 M18 4 Q19 2, 18 0" stroke="#fff" fill="none" stroke-width="2"></path></svg>
+                        <span class="product-name">Czarna Kawa</span>
+                        <span class="product-price">5.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="8" y="3" width="16" height="28" fill="#000"></rect><rect x="9" y="8" width="14" height="22" fill="#ffffff"></rect><rect x="9" y="4" width="14" height="4" fill="#8d6e63"></rect><rect x="11" y="12" width="10" height="10" fill="#bcaaa4"></rect><rect x="11" y="10" width="10" height="2" fill="#d7ccc8"></rect></svg>
+                        <span class="product-name">Duża Kawa Latte</span>
+                        <span class="product-price">8.00 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><circle cx="16" cy="16" r="13" fill="#000"></circle><circle cx="16" cy="16" r="12" fill="#e6a863"></circle><circle cx="16" cy="16" r="10" fill="#ff66b2"></circle><circle cx="16" cy="16" r="5" fill="#000"></circle><circle cx="16" cy="16" r="4" fill="#18241d"></circle><circle cx="12" cy="11" r="1" fill="#fff"></circle><circle cx="20" cy="11" r="1" fill="#ffff00"></circle><circle cx="13" cy="20" r="1" fill="#00e5ff"></circle><circle cx="21" cy="19" r="1" fill="#fff"></circle></svg>
+                        <span class="product-name">Donut Różowy</span>
+                        <span class="product-price">3.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><polygon points="9,29 23,29 26,17 6,17" fill="#000"></polygon><polygon points="10,28 22,28 25,18 7,18" fill="#d7ccc8"></polygon><circle cx="16" cy="14" r="9" fill="#000"></circle><circle cx="16" cy="14" r="8" fill="#4e342e"></circle><circle cx="12" cy="12" r="2" fill="#3e2723"></circle><circle cx="18" cy="15" r="2" fill="#3e2723"></circle></svg>
+                        <span class="product-name">Muffin Czekoladowy</span>
+                        <span class="product-price">4.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M5 23 Q16 9, 27 23 Q20 17, 16 23 Q12 17, 5 23" fill="#000" stroke="#000" stroke-width="2"></path><path d="M6 22 Q16 10, 26 22 Q20 18, 16 22 Q12 18, 6 22" fill="#ffcc80"></path><path d="M10 18 Q16 13, 22 18" fill="#e6a863" stroke-width="1"></path><rect x="14" y="24" width="4" height="2" fill="#d32f2f"></rect></svg>
+                        <span class="product-name">Rogalik 7Days</span>
+                        <span class="product-price">3.80 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="7" y="3" width="18" height="26" fill="#000"></rect><rect x="8" y="4" width="16" height="24" fill="#3f51b5"></rect><rect x="8" y="4" width="16" height="8" fill="#b0bec5"></rect><rect x="10" y="6" width="12" height="8" fill="#5d4037"></rect><rect x="11" y="7" width="4" height="3" fill="#4e342e"></rect><rect x="17" y="7" width="4" height="3" fill="#4e342e"></rect></svg>
+                        <span class="product-name">Czekolada Mleczna</span>
+                        <span class="product-price">4.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="5" y="3" width="22" height="26" fill="#000"></rect><rect x="6" y="4" width="20" height="24" fill="#d50000"></rect><rect x="8" y="2" width="16" height="2" fill="#ff8a80"></rect><circle cx="16" cy="16" r="6" fill="#ffea00"></circle><path d="M12 16 Q16 20, 20 16" fill="none" stroke="#d50000" stroke-width="2"></path></svg>
+                        <span class="product-name">Czipsy Paprykowe</span>
+                        <span class="product-price">7.00 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="5" y="3" width="22" height="26" fill="#000"></rect><rect x="6" y="4" width="20" height="24" fill="#4caf50"></rect><circle cx="16" cy="16" r="6" fill="#ffeb3b"></circle><rect x="11" y="14" width="2" height="4" fill="#2e7d32"></rect><rect x="18" y="13" width="3" height="2" fill="#2e7d32"></rect></svg>
+                        <span class="product-name">Chrupki Zielona Cebulka</span>
+                        <span class="product-price">6.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="7" y="3" width="18" height="26" fill="#000"></rect><rect x="8" y="4" width="16" height="24" fill="#00bcd4"></rect><rect x="10" y="8" width="3" height="4" fill="#ffeb3b"></rect><rect x="18" y="10" width="3" height="4" fill="#e91e63"></rect><rect x="13" y="18" width="3" height="4" fill="#4caf50"></rect></svg>
+                        <span class="product-name">Żelki Miśki</span>
+                        <span class="product-price">5.00 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="3" width="14" height="24" fill="#000"></rect><rect x="10" y="6" width="12" height="20" fill="#e53935"></rect><rect x="10" y="4" width="12" height="2" fill="#b0bec5"></rect><path d="M10 14 Q16 18, 22 12" fill="none" stroke="#ffffff" stroke-width="2"></path></svg>
+                        <span class="product-name">Coca-Cola Can</span>
+                        <span class="product-price">4.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="11" y="9" width="10" height="20" fill="#000"></rect><rect x="12" y="10" width="8" height="18" fill="#212121"></rect><rect x="12" y="3" width="8" height="8" fill="#000"></rect><rect x="13" y="4" width="6" height="6" fill="#212121"></rect><rect x="14" y="2" width="4" height="2" fill="#e53935"></rect><rect x="12" y="14" width="8" height="4" fill="#e53935"></rect></svg>
+                        <span class="product-name">Cola 1.5L</span>
+                        <span class="product-price">8.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="3" width="14" height="24" fill="#000"></rect><rect x="10" y="6" width="12" height="20" fill="#111111"></rect><rect x="10" y="4" width="12" height="2" fill="#b0bec5"></rect><path d="M13 10 L13 22 M16 12 L16 20 M19 10 L19 22" fill="none" stroke="#00e676" stroke-width="2"></path></svg>
+                        <span class="product-name">Energetyk Zielony</span>
+                        <span class="product-price">5.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="3" width="14" height="24" fill="#000"></rect><rect x="10" y="6" width="12" height="20" fill="#ff9100"></rect><rect x="10" y="4" width="12" height="2" fill="#b0bec5"></rect><circle cx="16" cy="16" r="3" fill="#d500f9"></circle></svg>
+                        <span class="product-name">Energetyk Mango</span>
+                        <span class="product-price">6.00 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="8" y="5" width="16" height="24" fill="#000"></rect><rect x="9" y="6" width="14" height="22" fill="#ff9800"></rect><rect x="14" y="2" width="4" height="4" fill="#ffffff"></rect><circle cx="16" cy="18" r="4" fill="#ff5722"></circle></svg>
+                        <span class="product-name">Sok Pomarańczowy</span>
+                        <span class="product-price">4.80 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="7" width="12" height="22" fill="#000"></rect><rect x="11" y="8" width="10" height="20" fill="#0277bd"></rect><rect x="12" y="3" width="8" height="6" fill="#000"></rect><rect x="13" y="4" width="6" height="4" fill="#0277bd"></rect><rect x="11" y="14" width="10" height="4" fill="#ffffff"></rect><circle cx="14" cy="22" r="1" fill="#fff"></circle><circle cx="18" cy="24" r="1" fill="#fff"></circle></svg>
+                        <span class="product-name">Woda Gazowana</span>
+                        <span class="product-price">2.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="9" width="12" height="20" fill="#000"></rect><rect x="11" y="10" width="10" height="18" fill="#1b5e20"></rect><rect x="12" y="4" width="8" height="7" fill="#000"></rect><rect x="13" y="5" width="6" height="5" fill="#1b5e20"></rect><rect x="11" y="14" width="10" height="5" fill="#ffb300"></rect><rect x="13" y="15" width="6" height="3" fill="#ffffff"></rect></svg>
+                        <span class="product-name">Piwo Jasne Pełne</span>
+                        <span class="product-price">4.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="9" width="12" height="20" fill="#000"></rect><rect x="11" y="10" width="10" height="18" fill="#3e2723"></rect><rect x="12" y="4" width="8" height="7" fill="#000"></rect><rect x="13" y="5" width="6" height="5" fill="#3e2723"></rect><rect x="11" y="13" width="10" height="6" fill="#e11d48"></rect><circle cx="16" cy="16" r="2" fill="#facc15"></circle></svg>
+                        <span class="product-name">Piwo Kraftowe IPA</span>
+                        <span class="product-price">7.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="11" width="14" height="17" fill="#000"></rect><rect x="10" y="12" width="12" height="15" fill="#cfd8dc"></rect><rect x="12" y="5" width="8" height="8" fill="#000"></rect><rect x="13" y="6" width="6" height="6" fill="#cfd8dc"></rect><rect x="13" y="4" width="6" height="2" fill="#d50000"></rect><rect x="10" y="15" width="12" height="6" fill="#d50000"></rect><rect x="12" y="16" width="8" height="4" fill="#fff"></rect></svg>
+                        <span class="product-name">Małpka Wiśniowa</span>
+                        <span class="product-price">9.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="9" width="12" height="21" fill="#000"></rect><rect x="11" y="10" width="10" height="19" fill="#eceff1"></rect><rect x="12" y="3" width="8" height="8" fill="#000"></rect><rect x="13" y="4" width="6" height="6" fill="#eceff1"></rect><rect x="13" y="2" width="6" height="2" fill="#b0bec5"></rect><rect x="11" y="15" width="10" height="6" fill="#0288d1"></rect><rect x="12" y="16" width="8" height="4" fill="#ffffff"></rect></svg>
+                        <span class="product-name">Wódka Czysta 0.5L</span>
+                        <span class="product-price">35.00 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="7" y="5" width="18" height="24" fill="#000"></rect><rect x="8" y="6" width="16" height="22" fill="#f5f5f5"></rect><rect x="8" y="6" width="16" height="8" fill="#b71c1c"></rect><rect x="10" y="18" width="12" height="6" fill="#212121"></rect></svg>
+                        <span class="product-name">Papierosy Mocne</span>
+                        <span class="product-price">18.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="5" y="9" width="22" height="14" fill="#000"></rect><rect x="6" y="10" width="20" height="12" fill="#00e5ff"></rect><rect x="9" y="13" width="4" height="6" fill="#fff"></rect><rect x="15" y="13" width="4" height="6" fill="#fff"></rect></svg>
+                        <span class="product-name">Guma do Żucia</span>
+                        <span class="product-price">2.50 zł</span>
+                        
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"></rect><rect x="4" y="8" width="24" height="16" fill="#0d47a1"></rect><rect x="6" y="12" width="6" height="8" fill="#29b6f6"></rect><rect x="14" y="14" width="10" height="2" fill="#ffffff"></rect><rect x="22" y="10" width="4" height="3" fill="#ffd54f"></rect></svg>
+                        <span class="product-name">Paysafecard</span>
+                        <span class="product-price">WYBIERZ</span>
+                        <span class="card-badge">TERMINAL</span>
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"></rect><rect x="4" y="8" width="24" height="16" fill="#212121"></rect><circle cx="16" cy="16" r="6" fill="#37474f"></circle><circle cx="14" cy="16" r="3" fill="#4fc3f7"></circle><rect x="6" y="10" width="4" height="3" fill="#ffca28"></rect></svg>
+                        <span class="product-name">Steam Card</span>
+                        <span class="product-price">WYBIERZ</span>
+                        <span class="card-badge">TERMINAL</span>
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"></rect><rect x="4" y="8" width="24" height="16" fill="#ffffff"></rect><polygon points="12,11 22,16 12,21" fill="#4285f4"></polygon><polygon points="12,11 17,13 12,16" fill="#34a853"></polygon><polygon points="12,21 17,19 12,16" fill="#ea4335"></polygon></svg>
+                        <span class="product-name">Google Play</span>
+                        <span class="product-price">WYBIERZ</span>
+                        <span class="card-badge">TERMINAL</span>
+                    </div><div class="product">
+                        <svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"></rect><rect x="4" y="8" width="24" height="16" fill="#222"></rect><rect x="12" y="12" width="8" height="8" fill="#e53935"></rect><rect x="14" y="14" width="4" height="4" fill="#ffffff"></rect></svg>
+                        <span class="product-name">Roblox Card</span>
+                        <span class="product-price">WYBIERZ</span>
+                        <span class="card-badge">TERMINAL</span>
+                    </div></div>
+        </div>
+
+        <div class="register-panel">
+            <div class="screen">
+                <div class="scanned-list" id="scanned-list"></div>
+                <div class="total">SUMA: <span id="current-total">0.00</span> ZŁ</div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-kasuj" id="btn-kasuj" onclick="checkout()" disabled="">ZATWIERDŹ [KASUJ]</button>
+                <button class="btn-app" id="btn-app" onclick="askForApp()" disabled="">ZAPYTAJ O APLIKACJĘ</button>
+                <button class="btn-cancel" id="btn-cancel" onclick="clearRegister()">ANULUJ KOSZYK</button>
+                <button class="btn-end" id="btn-end" onclick="controlDayButton()">ROZPOCZNIJ DZIEŃ</button>
+            </div>
+
+            <div class="corner-report">
+                <h3>KONTROLA BIZNESU</h3>
+                <div class="report-stat">Obsłużeni klienci: <span id="rep-cust">13</span></div>
+                <div class="report-stat">Utarg dzisiaj: <span id="rep-rev">2309.50 zł</span></div>
+                <div class="report-stat" id="rep-status" style="margin-top: 8px; color: rgb(255, 82, 82); font-size: 9px; font-weight: bold;">STATUS: ZAMKNIĘTE</div>
+            </div>
+        </div>
+        
+        <!-- MODAL KARTY -->
+        <div class="modal-overlay" id="card-modal" style="display: none;">
+            <div class="modal-content">
+                <h3>TERMINAL KART</h3>
+                <h4 id="modal-card-name">Paysafecard</h4>
+                <div class="grid-amounts" id="modal-grid-amounts"><button class="btn-amount">20 ZŁ</button><button class="btn-amount">30 ZŁ</button><button class="btn-amount">50 ZŁ</button><button class="btn-amount">100 ZŁ</button><button class="btn-amount">200 ZŁ</button><button class="btn-amount">500 ZŁ</button></div>
+                <div id="modal-custom-amount" class="hidden">
+                    <input type="number" id="custom-val-input" class="input-amount" min="10" max="600" placeholder="Wpisz (10-600)">
+                    <button class="btn-amount" style="width: 100%" onclick="confirmCustomAmount()">ZATWIERDŹ KWOTĘ</button>
+                </div>
+                <button class="btn-cancel" style="width: 100%; margin-top: 15px;" onclick="closeModal()">ANULUJ OPERACJĘ</button>
+            </div>
+        </div>
+
+        <!-- MODAL CENY -->
+        <div class="modal-overlay" id="price-modal" style="display: none;">
+            <div class="modal-content" style="border-color: #0277bd;">
+                <h3 style="color: #00e5ff;">USTAW MARŻĘ</h3>
+                <h4 id="modal-price-name">Guma do Żucia</h4>
+                <div style="font-size: 9px; color: #aaa; margin-bottom: 12px; line-height: 1.5;">Domyślna (sugerowana) cena:<br><span id="modal-base-price" style="color: #fff; font-size: 11px;">2.50</span> zł</div>
+                <input type="number" id="price-val-input" class="input-amount" step="0.10" min="0.10" style="border-color: #0277bd; color: #00e5ff;" placeholder="Nowa cena">
+                <button class="btn-amount" style="width: 100%; background: #01579b; border-color: #00e5ff;" onclick="confirmNewPrice()">ZAPISZ CENĘ</button>
+                <button class="btn-cancel" style="width: 100%; margin-top: 15px;" onclick="closePriceModal()">ANULUJ</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let playerBalance = 0.00; 
+        let currentDay = 1;
+        let playerLevel = 1;
+        let playerXP = 0;
+        let nextLevelXP = 100;
+        let gameHour = 8;
+        let gameMinute = 0;
+        let timeInterval = null;
+        let isStoreOpen = false;
+        let dailyRevenue = 0;
+        let dailyCustomers = 0;
+        let currentTotal = 0;
+        let currentCustomerType = ""; 
+        let currentCustomerBehavior = "normal"; 
+        let askedForApp = false;
+        let appScanned = false;
+        let eventModifier = { type: "none", target: "", multiplier: 1, extraPrice: 0 };
+
+        // PRODUKTY (DODANO BASEPRICE DO PORÓWNYWANIA MARŻY)
+        const productsList = [
+            { id: 0, name: "Hot Dog", basePrice: 6.50, price: 6.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="13" width="26" height="8" fill="#000"/><rect x="4" y="14" width="24" height="6" fill="#e6a863"/><rect x="4" y="20" width="24" height="2" fill="#c47a31"/><rect x="5" y="11" width="22" height="6" fill="#000"/><rect x="6" y="12" width="20" height="4" fill="#c4331a"/><rect x="6" y="16" width="20" height="2" fill="#a1230e"/><path d="M8 13 Q10 11, 12 15 T16 15 T20 15 T24 15" fill="none" stroke="#ffcc00" stroke-width="2"/></svg>' },
+            { id: 1, name: "Zapiekanka Klasyk", basePrice: 8.50, price: 8.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="1" y="12" width="30" height="10" fill="#000"/><rect x="2" y="13" width="28" height="6" fill="#d9a05b"/><rect x="2" y="19" width="28" height="2" fill="#b07a3e"/><rect x="4" y="11" width="24" height="4" fill="#ffde59"/><rect x="6" y="12" width="4" height="2" fill="#e60000"/><rect x="14" y="11" width="3" height="2" fill="#e60000"/><rect x="22" y="12" width="4" height="2" fill="#e60000"/><rect x="8" y="11" width="2" height="2" fill="#4d4d4d"/><rect x="18" y="12" width="2" height="2" fill="#4d4d4d"/></svg>' },
+            { id: 2, name: "Zapiekanka z Szynką", basePrice: 9.90, price: 9.90, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="1" y="12" width="30" height="10" fill="#000"/><rect x="2" y="13" width="28" height="6" fill="#d9a05b"/><rect x="2" y="19" width="28" height="2" fill="#b07a3e"/><rect x="4" y="11" width="24" height="4" fill="#ffde59"/><rect x="5" y="12" width="3" height="2" fill="#ff8080"/><rect x="12" y="11" width="4" height="2" fill="#ff8080"/><rect x="20" y="12" width="3" height="2" fill="#ff8080"/><rect x="9" y="12" width="2" height="2" fill="#e60000"/><rect x="17" y="11" width="2" height="2" fill="#e60000"/></svg>' },
+            { id: 3, name: "Panini", basePrice: 9.50, price: 9.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"/><rect x="4" y="8" width="24" height="14" fill="#e0b674"/><rect x="4" y="22" width="24" height="2" fill="#bc8d48"/><rect x="8" y="8" width="2" height="14" fill="#5c3817"/><rect x="15" y="8" width="2" height="14" fill="#5c3817"/><rect x="22" y="8" width="2" height="14" fill="#5c3817"/><rect x="4" y="14" width="2" height="3" fill="#ffeb3b"/><rect x="26" y="13" width="2" height="3" fill="#ffea2e"/></svg>' },
+            { id: 4, name: "Wrap z Kurczakiem", basePrice: 10.50, price: 10.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M5 26 L14 4 L26 12 L16 29 Z" fill="#000"/><path d="M6 25 L14 6 L24 12 L16 27 Z" fill="#eed9b3"/><path d="M12 6 L20 10 L16 16 L10 12 Z" fill="#66bb6a"/><rect x="13" y="9" width="3" height="3" fill="#ffb74d"/><rect x="15" y="12" width="2" height="2" fill="#ff5252"/></svg>' },
+            { id: 5, name: "Czarna Kawa", basePrice: 5.50, price: 5.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="5" width="14" height="24" fill="#000"/><rect x="10" y="10" width="12" height="18" fill="#e0e0e0"/><rect x="10" y="6" width="12" height="4" fill="#424242"/><rect x="12" y="14" width="8" height="6" fill="#4e342e"/><path d="M14 4 Q15 2, 14 0 M18 4 Q19 2, 18 0" stroke="#fff" fill="none" stroke-width="2"/></svg>' },
+            { id: 6, name: "Duża Kawa Latte", basePrice: 8.00, price: 8.00, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="8" y="3" width="16" height="28" fill="#000"/><rect x="9" y="8" width="14" height="22" fill="#ffffff"/><rect x="9" y="4" width="14" height="4" fill="#8d6e63"/><rect x="11" y="12" width="10" height="10" fill="#bcaaa4"/><rect x="11" y="10" width="10" height="2" fill="#d7ccc8"/></svg>' },
+            { id: 7, name: "Donut Różowy", basePrice: 3.50, price: 3.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><circle cx="16" cy="16" r="13" fill="#000"/><circle cx="16" cy="16" r="12" fill="#e6a863"/><circle cx="16" cy="16" r="10" fill="#ff66b2"/><circle cx="16" cy="16" r="5" fill="#000"/><circle cx="16" cy="16" r="4" fill="#18241d"/><circle cx="12" cy="11" r="1" fill="#fff"/><circle cx="20" cy="11" r="1" fill="#ffff00"/><circle cx="13" cy="20" r="1" fill="#00e5ff"/><circle cx="21" cy="19" r="1" fill="#fff"/></svg>' },
+            { id: 8, name: "Muffin Czekoladowy", basePrice: 4.50, price: 4.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><polygon points="9,29 23,29 26,17 6,17" fill="#000"/><polygon points="10,28 22,28 25,18 7,18" fill="#d7ccc8"/><circle cx="16" cy="14" r="9" fill="#000"/><circle cx="16" cy="14" r="8" fill="#4e342e"/><circle cx="12" cy="12" r="2" fill="#3e2723"/><circle cx="18" cy="15" r="2" fill="#3e2723"/></svg>' },
+            { id: 9, name: "Rogalik 7Days", basePrice: 3.80, price: 3.80, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M5 23 Q16 9, 27 23 Q20 17, 16 23 Q12 17, 5 23" fill="#000" stroke="#000" stroke-width="2"/><path d="M6 22 Q16 10, 26 22 Q20 18, 16 22 Q12 18, 6 22" fill="#ffcc80"/><path d="M10 18 Q16 13, 22 18" fill="#e6a863" stroke-width="1"/><rect x="14" y="24" width="4" height="2" fill="#d32f2f"/></svg>' },
+            { id: 10, name: "Czekolada Mleczna", basePrice: 4.50, price: 4.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="7" y="3" width="18" height="26" fill="#000"/><rect x="8" y="4" width="16" height="24" fill="#3f51b5"/><rect x="8" y="4" width="16" height="8" fill="#b0bec5"/><rect x="10" y="6" width="12" height="8" fill="#5d4037"/><rect x="11" y="7" width="4" height="3" fill="#4e342e"/><rect x="17" y="7" width="4" height="3" fill="#4e342e"/></svg>' },
+            { id: 11, name: "Czipsy Paprykowe", basePrice: 7.00, price: 7.00, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="5" y="3" width="22" height="26" fill="#000"/><rect x="6" y="4" width="20" height="24" fill="#d50000"/><rect x="8" y="2" width="16" height="2" fill="#ff8a80"/><circle cx="16" cy="16" r="6" fill="#ffea00"/><path d="M12 16 Q16 20, 20 16" fill="none" stroke="#d50000" stroke-width="2"/></svg>' },
+            { id: 12, name: "Chrupki Zielona Cebulka", basePrice: 6.50, price: 6.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="5" y="3" width="22" height="26" fill="#000"/><rect x="6" y="4" width="20" height="24" fill="#4caf50"/><circle cx="16" cy="16" r="6" fill="#ffeb3b"/><rect x="11" y="14" width="2" height="4" fill="#2e7d32"/><rect x="18" y="13" width="3" height="2" fill="#2e7d32"/></svg>' },
+            { id: 13, name: "Żelki Miśki", basePrice: 5.00, price: 5.00, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="7" y="3" width="18" height="26" fill="#000"/><rect x="8" y="4" width="16" height="24" fill="#00bcd4"/><rect x="10" y="8" width="3" height="4" fill="#ffeb3b"/><rect x="18" y="10" width="3" height="4" fill="#e91e63"/><rect x="13" y="18" width="3" height="4" fill="#4caf50"/></svg>' },
+            { id: 14, name: "Coca-Cola Can", basePrice: 4.50, price: 4.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="3" width="14" height="24" fill="#000"/><rect x="10" y="6" width="12" height="20" fill="#e53935"/><rect x="10" y="4" width="12" height="2" fill="#b0bec5"/><path d="M10 14 Q16 18, 22 12" fill="none" stroke="#ffffff" stroke-width="2"/></svg>' },
+            { id: 15, name: "Cola 1.5L", basePrice: 8.50, price: 8.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="11" y="9" width="10" height="20" fill="#000"/><rect x="12" y="10" width="8" height="18" fill="#212121"/><rect x="12" y="3" width="8" height="8" fill="#000"/><rect x="13" y="4" width="6" height="6" fill="#212121"/><rect x="14" y="2" width="4" height="2" fill="#e53935"/><rect x="12" y="14" width="8" height="4" fill="#e53935"/></svg>' },
+            { id: 16, name: "Energetyk Zielony", basePrice: 5.50, price: 5.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="3" width="14" height="24" fill="#000"/><rect x="10" y="6" width="12" height="20" fill="#111111"/><rect x="10" y="4" width="12" height="2" fill="#b0bec5"/><path d="M13 10 L13 22 M16 12 L16 20 M19 10 L19 22" fill="none" stroke="#00e676" stroke-width="2"/></svg>' },
+            { id: 17, name: "Energetyk Mango", basePrice: 6.00, price: 6.00, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="3" width="14" height="24" fill="#000"/><rect x="10" y="6" width="12" height="20" fill="#ff9100"/><rect x="10" y="4" width="12" height="2" fill="#b0bec5"/><circle cx="16" cy="16" r="3" fill="#d500f9"/></svg>' },
+            { id: 18, name: "Sok Pomarańczowy", basePrice: 4.80, price: 4.80, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="8" y="5" width="16" height="24" fill="#000"/><rect x="9" y="6" width="14" height="22" fill="#ff9800"/><rect x="14" y="2" width="4" height="4" fill="#ffffff"/><circle cx="16" cy="18" r="4" fill="#ff5722"/></svg>' },
+            { id: 19, name: "Woda Gazowana", basePrice: 2.50, price: 2.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="7" width="12" height="22" fill="#000"/><rect x="11" y="8" width="10" height="20" fill="#0277bd"/><rect x="12" y="3" width="8" height="6" fill="#000"/><rect x="13" y="4" width="6" height="4" fill="#0277bd"/><rect x="11" y="14" width="10" height="4" fill="#ffffff"/><circle cx="14" cy="22" r="1" fill="#fff"/><circle cx="18" cy="24" r="1" fill="#fff"/></svg>' },
+            { id: 20, name: "Piwo Jasne Pełne", basePrice: 4.50, price: 4.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="9" width="12" height="20" fill="#000"/><rect x="11" y="10" width="10" height="18" fill="#1b5e20"/><rect x="12" y="4" width="8" height="7" fill="#000"/><rect x="13" y="5" width="6" height="5" fill="#1b5e20"/><rect x="11" y="14" width="10" height="5" fill="#ffb300"/><rect x="13" y="15" width="6" height="3" fill="#ffffff"/></svg>' },
+            { id: 21, name: "Piwo Kraftowe IPA", basePrice: 7.50, price: 7.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="9" width="12" height="20" fill="#000"/><rect x="11" y="10" width="10" height="18" fill="#3e2723"/><rect x="12" y="4" width="8" height="7" fill="#000"/><rect x="13" y="5" width="6" height="5" fill="#3e2723"/><rect x="11" y="13" width="10" height="6" fill="#e11d48"/><circle cx="16" cy="16" r="2" fill="#facc15"/></svg>' },
+            { id: 22, name: "Małpka Wiśniowa", basePrice: 9.50, price: 9.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="9" y="11" width="14" height="17" fill="#000"/><rect x="10" y="12" width="12" height="15" fill="#cfd8dc"/><rect x="12" y="5" width="8" height="8" fill="#000"/><rect x="13" y="6" width="6" height="6" fill="#cfd8dc"/><rect x="13" y="4" width="6" height="2" fill="#d50000"/><rect x="10" y="15" width="12" height="6" fill="#d50000"/><rect x="12" y="16" width="8" height="4" fill="#fff"/></svg>' },
+            { id: 23, name: "Wódka Czysta 0.5L", basePrice: 35.00, price: 35.00, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="10" y="9" width="12" height="21" fill="#000"/><rect x="11" y="10" width="10" height="19" fill="#eceff1"/><rect x="12" y="3" width="8" height="8" fill="#000"/><rect x="13" y="4" width="6" height="6" fill="#eceff1"/><rect x="13" y="2" width="6" height="2" fill="#b0bec5"/><rect x="11" y="15" width="10" height="6" fill="#0288d1"/><rect x="12" y="16" width="8" height="4" fill="#ffffff"/></svg>' },
+            { id: 24, name: "Papierosy Mocne", basePrice: 18.50, price: 18.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="7" y="5" width="18" height="24" fill="#000"/><rect x="8" y="6" width="16" height="22" fill="#f5f5f5"/><rect x="8" y="6" width="16" height="8" fill="#b71c1c"/><rect x="10" y="18" width="12" height="6" fill="#212121"/></svg>' },
+            { id: 25, name: "Guma do Żucia", basePrice: 2.50, price: 2.50, isCard: false, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="5" y="9" width="22" height="14" fill="#000"/><rect x="6" y="10" width="20" height="12" fill="#00e5ff"/><rect x="9" y="13" width="4" height="6" fill="#fff"/><rect x="15" y="13" width="4" height="6" fill="#fff"/></svg>' },
+            
+            // KARTY DO TERMINALA
+            { id: 26, name: "Paysafecard", isCard: true, cardType: 'preset', values: [20, 30, 50, 100, 200, 500], svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"/><rect x="4" y="8" width="24" height="16" fill="#0d47a1"/><rect x="6" y="12" width="6" height="8" fill="#29b6f6"/><rect x="14" y="14" width="10" height="2" fill="#ffffff"/><rect x="22" y="10" width="4" height="3" fill="#ffd54f"/></svg>' },
+            { id: 27, name: "Steam Card", isCard: true, cardType: 'preset', values: [25, 50, 75, 100, 250, 500], svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"/><rect x="4" y="8" width="24" height="16" fill="#212121"/><circle cx="16" cy="16" r="6" fill="#37474f"/><circle cx="14" cy="16" r="3" fill="#4fc3f7"/><rect x="6" y="10" width="4" height="3" fill="#ffca28"/></svg>' },
+            { id: 28, name: "Google Play", isCard: true, cardType: 'custom', min: 10, max: 600, svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"/><rect x="4" y="8" width="24" height="16" fill="#ffffff"/><polygon points="12,11 22,16 12,21" fill="#4285f4"/><polygon points="12,11 17,13 12,16" fill="#34a853"/><polygon points="12,21 17,19 12,16" fill="#ea4335"/></svg>' },
+            { id: 29, name: "Roblox Card", isCard: true, cardType: 'preset', values: [50, 100, 200], svg: '<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="7" width="26" height="18" fill="#000"/><rect x="4" y="8" width="24" height="16" fill="#222"/><rect x="12" y="12" width="8" height="8" fill="#e53935"/><rect x="14" y="14" width="4" height="4" fill="#ffffff"/></svg>' }
+        ];
+
+        let upgrades = [
+            { id: 'ac', name: "KLIMATYZACJA", desc: "+15% Napiwków", cost: 150, reqLvl: 2, owned: false },
+            { id: 'monit', name: "MONITORING", desc: "Złodzieje nie kradną", cost: 300, reqLvl: 3, owned: false },
+            { id: 'coffee', name: "EKSPRES", desc: "+5 XP za klienta", cost: 500, reqLvl: 4, owned: false },
+            { id: 'neon', name: "SZYLD NEON", desc: "Klienci kupują więcej", cost: 1200, reqLvl: 5, owned: false }
+        ];
+
+        const avatarsData = {
+            man: '<svg class="pixel-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="4" y="1" width="8" height="2" fill="#3e2723"/><rect x="4" y="2" width="2" height="3" fill="#3e2723"/><rect x="10" y="2" width="2" height="3" fill="#3e2723"/><rect x="5" y="3" width="6" height="6" fill="#f1c27d"/><rect x="6" y="5" width="1" height="1" fill="#000"/><rect x="9" y="5" width="1" height="1" fill="#000"/><rect x="7" y="7" width="2" height="1" fill="#d7ccc8"/><rect x="3" y="9" width="10" height="7" fill="#1e88e5"/><rect x="7" y="9" width="2" height="7" fill="#1565c0"/></svg>',
+            woman: '<svg class="pixel-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="4" y="1" width="8" height="3" fill="#ffb300"/><rect x="3" y="2" width="2" height="7" fill="#ffb300"/><rect x="11" y="2" width="2" height="7" fill="#ffb300"/><rect x="5" y="4" width="6" height="5" fill="#ffe0b2"/><rect x="6" y="5" width="1" height="1" fill="#000"/><rect x="9" y="5" width="1" height="1" fill="#000"/><rect x="7" y="7" width="2" height="1" fill="#e91e63"/><rect x="4" y="9" width="8" height="7" fill="#8e24aa"/><rect x="6" y="10" width="4" height="2" fill="#ab47bc"/></svg>',
+            child: '<svg class="pixel-avatar" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="4" y="2" width="8" height="3" fill="#d32f2f"/><rect x="4" y="4" width="10" height="1" fill="#d32f2f"/><rect x="5" y="5" width="6" height="5" fill="#ffccbc"/><rect x="6" y="6" width="1" height="1" fill="#000"/><rect x="9" y="6" width="1" height="1" fill="#000"/><rect x="7" y="8" width="2" height="1" fill="#d84315"/><rect x="5" y="10" width="6" height="6" fill="#43a047"/><rect x="7" y="11" width="2" height="5" fill="#1b5e20"/></svg>'
+        };
+
+        let currentTargetOrder = {}; 
+        let scannedItemsArray = [];  
+        let typewriterTimeout = null;
+        let currentTab = "shop";
+        let pendingCardProduct = null;
+        let pendingPriceProduct = null;
+
+        const viewContent = document.getElementById('view-content');
+        const speechElement = document.getElementById('order-speech');
+        const avatarContainer = document.getElementById('avatar-container');
+        const eventBanner = document.getElementById('event-banner');
+
+        function checkUpgrade(id) {
+            return upgrades.find(u => u.id === id).owned;
+        }
+
+        function renderView() {
+            viewContent.innerHTML = "";
+            if (currentTab === "shop") {
+                productsList.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = `product`;
+                    card.onclick = () => { if(isStoreOpen) triggerScanFlow(p); };
+                    
+                    let priceText = p.isCard ? "WYBIERZ" : `${p.price.toFixed(2)} zł`;
+                    if(!p.isCard && eventModifier.type === "expensive" && eventModifier.target === p.name) {
+                        priceText = `${(p.price + eventModifier.extraPrice).toFixed(2)} zł`;
+                    }
+
+                    card.innerHTML = `
+                        ${p.svg}
+                        <span class="product-name">${p.name}</span>
+                        <span class="product-price">${priceText}</span>
+                        ${p.isCard ? '<span class="card-badge">TERMINAL</span>' : ''}
+                    `;
+                    viewContent.appendChild(card);
+                });
+            } else if (currentTab === "prices") {
+                productsList.forEach(p => {
+                    if (p.isCard) return; // Kart terminala nie można zmieniać cenowo
+                    const card = document.createElement('div');
+                    card.className = `product`;
+                    card.style.borderColor = p.price > p.basePrice ? "#ff9800" : "#3a5444";
+                    card.onclick = () => { openPriceModal(p); };
+                    card.innerHTML = `
+                        ${p.svg}
+                        <span class="product-name">${p.name}</span>
+                        <span class="product-price" style="color: #00e5ff;">Modyfikuj</span>
+                        <span style="color:#ffeb3b; font-size:8.5px; font-weight:bold; text-shadow:1px 1px 0 #000; margin-top:2px;">[${p.price.toFixed(2)} zł]</span>
+                    `;
+                    viewContent.appendChild(card);
+                });
+            } else {
+                upgrades.forEach(upg => {
+                    const isLocked = playerLevel < upg.reqLvl;
+                    const uDiv = document.createElement('div');
+                    uDiv.className = `wholesale-item ${isLocked ? 'locked' : ''}`;
+                    uDiv.style.borderColor = upg.owned ? "#00ff44" : (isLocked ? "#444" : "#ffc107");
+                    
+                    let btnHTML = "";
+                    if (upg.owned) {
+                        btnHTML = `<button class="btn-buy-stock" style="background-color:#555;" disabled>KUPIONE</button>`;
+                    } else if (isLocked) {
+                        btnHTML = `<button class="btn-buy-stock" style="background-color:#222; color:#777; border-color:#444;" disabled>WYMAGA ${upg.reqLvl} LVL</button>`;
+                    } else {
+                        btnHTML = `<button class="btn-buy-stock" style="background-color:#ff9800;" onclick="buyUpgrade('${upg.id}', ${upg.cost})">KUP: ${upg.cost} ZŁ</button>`;
+                    }
+
+                    uDiv.innerHTML = `
+                        <span style="font-size:9px;color:#fff;font-weight:bold;text-shadow:1px 1px 0 #000;">${upg.name}</span>
+                        <span style="font-size:7px;color:#bbb">${upg.desc}</span>
+                        ${btnHTML}
+                    `;
+                    viewContent.appendChild(uDiv);
+                });
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-shop').className = `tab-btn ${tab==='shop'?'active':''}`;
+            document.getElementById('tab-prices').className = `tab-btn ${tab==='prices'?'active':''}`;
+            document.getElementById('tab-warehouse').className = `tab-btn ${tab==='warehouse'?'active':''}`;
+            renderView();
+        }
+
+        // FUNKCJE ZARZĄDZANIA CENĄ
+        function openPriceModal(prod) {
+            pendingPriceProduct = prod;
+            document.getElementById('modal-price-name').innerText = prod.name;
+            document.getElementById('modal-base-price').innerText = prod.basePrice.toFixed(2);
+            document.getElementById('price-val-input').value = prod.price.toFixed(2);
+            document.getElementById('price-modal').style.display = "flex";
+        }
+
+        function confirmNewPrice() {
+            let val = parseFloat(document.getElementById('price-val-input').value);
+            if (!isNaN(val) && val >= 0.10) {
+                pendingPriceProduct.price = val;
+                closePriceModal();
+                renderView();
+            } else {
+                alert("Cena musi być większa od 0!");
+            }
+        }
+
+        function closePriceModal() {
+            document.getElementById('price-modal').style.display = "none";
+            pendingPriceProduct = null;
+        }
+
+
+        function buyUpgrade(id, cost) {
+            if (playerBalance >= cost) {
+                playerBalance -= cost;
+                let u = upgrades.find(up => up.id === id);
+                if(u) u.owned = true;
+                updateGlobalUI();
+                renderView();
+            } else {
+                alert("Brak środków na ulepszenie!");
+            }
+        }
+
+        function addXP(amount) {
+            playerXP += amount;
+            if (playerXP >= nextLevelXP) {
+                playerXP -= nextLevelXP;
+                playerLevel++;
+                nextLevelXP = Math.floor(nextLevelXP * 1.5);
+                eventBanner.innerText = `💥 AWANS! Osiągnięto ${playerLevel} poziom! Sprawdź ulepszenia! 💥`;
+                renderView();
+            }
+            updateGlobalUI();
+        }
+
+        function updateTimeClock() {
+            gameMinute += 3; 
+            if (gameMinute >= 60) {
+                gameHour++;
+                gameMinute = 0;
+            }
+            document.getElementById('time-display').innerText = `GODZINA: ${gameHour.toString().padStart(2, '0')}:${gameMinute.toString().padStart(2, '0')}`;
+            if (gameHour >= 23) endShift();
+        }
+
+        function controlDayButton() {
+            if (!isStoreOpen) startNewDay();
+            else endShift();
+        }
+
+        function startNewDay() {
+            isStoreOpen = true;
+            gameHour = 8;
+            gameMinute = 0;
+            dailyRevenue = 0;
+            dailyCustomers = 0;
+            
+            document.getElementById('btn-end').innerText = "ZAKOŃCZ ZMIANĘ";
+            document.getElementById('rep-status').innerText = "STATUS: OTWARTY";
+            document.getElementById('rep-status').style.color = "#00ff44";
+
+            const rand = Math.random();
+            if (rand < 0.25) {
+                eventModifier = { type: "expensive", target: "Energetyk Zielony", multiplier: 1, extraPrice: 3.00 };
+                eventBanner.innerText = "WYDARZENIE: Upał! Energetyki schodzą o 3.00 zł drożej!";
+            } else if (rand < 0.45 && !checkUpgrade('monit')) {
+                let stolenCash = 40;
+                if(playerBalance >= stolenCash) {
+                    playerBalance -= stolenCash;
+                    eventBanner.innerText = `WYDARZENIE: Kradzież! Złodziej wyniósł z kasy ${stolenCash} zł (Kup monitoring!)`;
+                } else {
+                    eventModifier = { type: "none" };
+                    eventBanner.innerText = "WYDARZENIE: Złodziej chciał okraść kasę, ale była pusta!";
+                }
+            } else {
+                eventModifier = { type: "none" };
+                eventBanner.innerText = "Zwykły dzień w pracy. Obsługuj klientów by zdobyć XP!";
+            }
+
+            updateGlobalUI();
+            switchTab('shop'); // Wymuś powrót do sklepu po rozpoczęciu zmiany
+            renderView();
+            generateNewCustomer();
+            timeInterval = setInterval(updateTimeClock, 1000);
+        }
+
+        function endShift() {
+            clearInterval(timeInterval);
+            isStoreOpen = false;
+            toggleInputs(false);
+            closeModal();
+            closePriceModal();
+            clearRegister();
+            avatarContainer.className = "avatar-container hidden-left";
+            
+            currentDay++;
+            speechElement.innerHTML = `<strong>KONIEC DNIA:</strong><br>Klienci: ${dailyCustomers}<br>Czysty Zysk: +${dailyRevenue.toFixed(2)} zł<br><br>Rozpocznij kolejny dzień!`;
+            document.getElementById('btn-end').innerText = "ROZPOCZNIJ DZIEŃ";
+            document.getElementById('rep-status').innerText = "STATUS: ZAMKNIĘTE";
+            document.getElementById('rep-status').style.color = "#ff5252";
+            
+            updateGlobalUI();
+            renderView();
+        }
+
+        function typeWriterAnimation(text, index = 0) {
+            if (index === 0) speechElement.innerHTML = "";
+            if (index < text.length) {
+                if (text.charAt(index) === '<') {
+                    let tagEnd = text.indexOf('>', index);
+                    if (tagEnd !== -1) {
+                        speechElement.innerHTML += text.substring(index, tagEnd + 1);
+                        index = tagEnd + 1;
+                    } else {
+                        speechElement.innerHTML += text.charAt(index);
+                        index++;
+                    }
+                } else {
+                    speechElement.innerHTML += text.charAt(index);
+                    index++;
+                }
+                typewriterTimeout = setTimeout(() => typeWriterAnimation(text, index), 12);
+            }
+        }
+
+        function generateNewCustomer() {
+            if (!isStoreOpen) return;
+            clearTimeout(typewriterTimeout);
+            speechElement.innerHTML = "...";
+            avatarContainer.className = "avatar-container hidden-left";
+            
+            askedForApp = false;
+            appScanned = false;
+            document.getElementById("btn-app").disabled = true;
+            closeModal();
+
+            setTimeout(() => {
+                const types = ["man", "woman", "child"];
+                currentCustomerType = types[Math.floor(Math.random() * types.length)];
+                avatarContainer.innerHTML = avatarsData[currentCustomerType];
+                
+                let titleName = "MĘŻCZYZNA";
+                if(currentCustomerType === "woman") titleName = "KOBIETA";
+                if(currentCustomerType === "child") titleName = "DZIECKO";
+                document.getElementById("customer-type-title").innerText = `KLIENT: ${titleName}`;
+
+                avatarContainer.className = "avatar-container";
+                currentTargetOrder = {};
+                scannedItemsArray = [];
+                clearRegister();
+
+                // Nowa, większa domyślna ilość produktów (Klienci kupują więcej na starcie)
+                let maxItems = checkUpgrade('neon') ? 3 : 2;
+                let itemsCount = Math.floor(Math.random() * maxItems) + 3; // Przedział 3-4 (lub 3-5 z neonem)
+
+                let chosenProducts = [];
+                for(let i=0; i < itemsCount; i++) {
+                    chosenProducts.push(productsList[Math.floor(Math.random() * productsList.length)]);
+                }
+
+                // MECHANIKA OBURZENIA NA CENY (REALIZM)
+                let angryChance = 0;
+                let angryItem = "";
+                
+                for (let prod of chosenProducts) {
+                    if (!prod.isCard) {
+                        let ratio = prod.price / prod.basePrice;
+                        if (ratio > 1.3) {
+                            angryChance += 0.4; // Zawyżone o >30%
+                            angryItem = prod.name;
+                        }
+                        if (ratio > 1.8) {
+                            angryChance += 1.0; // Zawyżone >80% - gwarancja wyjścia
+                            angryItem = prod.name;
+                        }
+                    }
+                }
+
+                if (Math.random() < angryChance) {
+                    currentCustomerBehavior = "angry_price";
+                    typeWriterAnimation(`Oszalałeś?! ${angryItem} w takiej cenie?! To jest zwykłe zdzierstwo. Wychodzę stąd!`);
+                    toggleInputs(false);
+                    setTimeout(generateNewCustomer, 4000);
+                    return;
+                }
+
+                // Standardowe zachowania z podstawowej wersji
+                let behaviorRoll = Math.random();
+                if (behaviorRoll < 0.10) {
+                    currentCustomerBehavior = "changed_mind";
+                    typeWriterAnimation("Aaa... postoję, popatrzę... jednak się rozmyśliłem. Do widzenia!");
+                    toggleInputs(false);
+                    setTimeout(generateNewCustomer, 3000);
+                    return;
+                } else if (behaviorRoll < 0.25) {
+                    currentCustomerBehavior = "broke";
+                } else {
+                    currentCustomerBehavior = "normal";
+                }
+
+                // Składanie zamówienia
+                let greeting = currentCustomerType === "child" ? "Siema! Daj mi:<br>" : "Dzień dobry! Poproszę:<br>";
+                
+                for (let prod of chosenProducts) {
+                    let finalName = prod.name;
+                    if (prod.isCard) {
+                        let amount = 0;
+                        if (prod.cardType === 'preset') {
+                            amount = prod.values[Math.floor(Math.random() * prod.values.length)];
+                        } else {
+                            amount = Math.floor(Math.random() * 59) * 10 + 20; 
+                        }
+                        finalName = `${prod.name} (${amount} zł)`;
+                    }
+                    currentTargetOrder[finalName] = (currentTargetOrder[finalName] || 0) + 1;
+                }
+
+                for (const [name, qty] of Object.entries(currentTargetOrder)) {
+                    greeting += `<span class="order-item">${qty}x ${name}</span><br>`;
+                }
+                
+                typeWriterAnimation(greeting);
+                toggleInputs(true);
+                document.getElementById("btn-app").disabled = false;
+            }, 500);
+        }
+
+        function toggleInputs(enable) {
+            document.getElementById("btn-kasuj").disabled = !enable;
+        }
+
+        function askForApp() {
+            if(askedForApp || !isStoreOpen) return;
+            askedForApp = true;
+            document.getElementById("btn-app").disabled = true;
+
+            if(Math.random() < 0.70) {
+                appScanned = true;
+                speechElement.innerHTML += `<br><span style="color:#ff9800; font-weight:bold;">*BIP* Zeskanowano apkę! (+5.00 zł)</span>`;
+            } else {
+                speechElement.innerHTML += `<br><span style="color:#777;">"Nie mam aplikacji!"</span>`;
+            }
+        }
+
+        function triggerScanFlow(prod) {
+            if (prod.isCard) {
+                openCardTerminal(prod);
+            } else {
+                let activePrice = prod.price;
+                if(eventModifier.type === "expensive" && eventModifier.target === prod.name) activePrice += eventModifier.extraPrice;
+                addScannedItemToCart(prod.name, activePrice);
+            }
+        }
+
+        function openCardTerminal(prod) {
+            pendingCardProduct = prod;
+            document.getElementById('modal-card-name').innerText = prod.name;
+            
+            const grid = document.getElementById('modal-grid-amounts');
+            const customDiv = document.getElementById('modal-custom-amount');
+            grid.innerHTML = "";
+
+            if (prod.cardType === 'preset') {
+                grid.classList.remove('hidden');
+                customDiv.classList.add('hidden');
+                prod.values.forEach(val => {
+                    let btn = document.createElement('button');
+                    btn.className = "btn-amount";
+                    btn.innerText = `${val} ZŁ`;
+                    btn.onclick = () => { finalizeCardSelection(val); };
+                    grid.appendChild(btn);
+                });
+            } else {
+                grid.classList.add('hidden');
+                customDiv.classList.remove('hidden');
+                document.getElementById('custom-val-input').value = "";
+            }
+
+            document.getElementById('card-modal').style.display = "flex";
+        }
+
+        function confirmCustomAmount() {
+            let val = parseInt(document.getElementById('custom-val-input').value);
+            if(val >= 10 && val <= 600) {
+                finalizeCardSelection(val);
+            } else {
+                alert("Kwota dla Google Play musi być od 10 zł do 600 zł!");
+            }
+        }
+
+        function finalizeCardSelection(amount) {
+            let formattedName = `${pendingCardProduct.name} (${amount} zł)`;
+            addScannedItemToCart(formattedName, amount);
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('card-modal').style.display = "none";
+            pendingCardProduct = null;
+        }
+
+        function addScannedItemToCart(name, price) {
+            scannedItemsArray.push({ name: name, price: price });
+
+            const itemRow = document.createElement('div');
+            itemRow.className = 'scanned-item';
+            itemRow.innerHTML = `<span>* ${name}</span> <span>${price.toFixed(2)}</span>`;
+            document.getElementById('scanned-list').appendChild(itemRow);
+
+            currentTotal += price;
+            document.getElementById('current-total').innerText = currentTotal.toFixed(2);
+        }
+
+        function clearRegister() {
+            currentTotal = 0;
+            scannedItemsArray = [];
+            document.getElementById('scanned-list').innerHTML = '';
+            document.getElementById('current-total').innerText = '0.00';
+            closeModal();
+        }
+
+        function checkout() {
+            if (scannedItemsArray.length === 0) return;
+            toggleInputs(false);
+            document.getElementById("btn-app").disabled = true;
+
+            if(currentCustomerBehavior === "broke") {
+                clearRegister(); 
+                clearTimeout(typewriterTimeout);
+                speechElement.innerHTML = `<span style="color:#ff5252; font-weight:bold;">O nie! Odrzuciło mi kartę! Sorki, nie kupuję.</span>`;
+                
+                setTimeout(() => {
+                    avatarContainer.className = "avatar-container hidden-left";
+                    setTimeout(generateNewCustomer, 500);
+                }, 1500);
+                return;
+            }
+
+            let currentScannedCount = {};
+            scannedItemsArray.forEach(item => { 
+                currentScannedCount[item.name] = (currentScannedCount[item.name] || 0) + 1; 
+            });
+
+            let isOrderCorrect = true;
+            for (const [name, qty] of Object.entries(currentTargetOrder)) {
+                if ((currentScannedCount[name] || 0) !== qty) isOrderCorrect = false;
+            }
+            for (const [name, qty] of Object.entries(currentScannedCount)) {
+                if ((currentTargetOrder[name] || 0) !== qty) isOrderCorrect = false;
+            }
+
+            if (isOrderCorrect) {
+                let tips = checkUpgrade('ac') ? (currentTotal * 0.15) : 0;
+                let appBonus = appScanned ? 5.00 : 0.00;
+                
+                let finalIncome = currentTotal + tips + appBonus;
+                
+                playerBalance += finalIncome; 
+                dailyRevenue += finalIncome;
+                dailyCustomers++;
+                
+                let xpGain = 25;
+                if(checkUpgrade('coffee')) xpGain += 5;
+                addXP(xpGain);
+                
+                updateGlobalUI();
+                clearTimeout(typewriterTimeout);
+
+                let textThanks = "Dzięki wielkie szefie!";
+                if(appScanned) textThanks = "Elegancko, apka wbita! Na razie!";
+                if(tips > 0 && !appScanned) textThanks = "Masz tu napiwek za spoko obsługę!";
+                
+                speechElement.innerHTML = `<span class="thank-you-text">${textThanks}<br>Zdobywasz +${xpGain} XP!</span>`;
+                
+                setTimeout(() => {
+                    avatarContainer.className = "avatar-container hidden-right";
+                    setTimeout(generateNewCustomer, 500);
+                }, 1200);
+
+            } else {
+                clearTimeout(typewriterTimeout);
+                speechElement.innerHTML = `<span style="color:red">Źle nabiłeś na kasę albo nie ta kwota! Wychodzę!</span>`;
+                
+                setTimeout(() => {
+                    avatarContainer.className = "avatar-container hidden-left";
+                    clearRegister();
+                    setTimeout(generateNewCustomer, 500);
+                }, 1500);
+            }
+        }
+
+        function updateGlobalUI() {
+            document.getElementById('player-balance').innerText = playerBalance.toFixed(2);
+            document.getElementById('day-display').innerText = `DZIEŃ: ${currentDay}`;
+            document.getElementById('level-display').innerText = `LVL: ${playerLevel} (XP: ${playerXP}/${nextLevelXP})`;
+            
+            document.getElementById('rep-cust').innerText = dailyCustomers;
+            document.getElementById('rep-rev').innerText = `${dailyRevenue.toFixed(2)} zł`;
+        }
+
+        updateGlobalUI();
+        renderView();
+    </script>
+
+</body></html>
